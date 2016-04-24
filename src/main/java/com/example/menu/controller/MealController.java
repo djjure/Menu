@@ -2,6 +2,7 @@ package com.example.menu.controller;
 
 import java.security.Principal;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -51,12 +52,13 @@ public class MealController {
 		datum.setHours(0);
 		datum.setMinutes(0);
 		datum.setSeconds(0);
+		List<MealType> mealTypes = mealTypeService.listMealTypes();
 		User user = userService.findById(korisnik);
 		List<Meal> meals = mealService.listMeal(korisnik, datum);
 		for (Meal m : meals) {
 			mealService.deleteMeal(m.getId());
 		}
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < mealTypes.size(); i++) {
 			for (int j = 0; j < params.get("namir[" + i + "][]").size(); j++) {
 				if ((Long.valueOf(params.get("namir[" + i + "][]").get(j)) != -1) && (params.get("kolicina[" + i + "][]").get(j).compareTo("") != 0)) {
 					Meal m = new Meal();
@@ -124,7 +126,59 @@ public class MealController {
 		model.addAttribute("mealTypes", mealTypes);
 		model.addAttribute("currentUser", currentUser);
 		model.addAttribute("datum", datum);
+
+		List<List<MealController.StavkaObroka>> dnevniMeni = new ArrayList<List<MealController.StavkaObroka>>();
+		for (int i = 0; i < mealTypes.size(); i++) {
+			List<MealController.StavkaObroka> obrok = new ArrayList<MealController.StavkaObroka>();
+			for (Meal m : meals) {
+				if (m.getMealType().getId() == i) {
+					StavkaObroka so = new StavkaObroka();
+					so.setKolicina(String.valueOf(m.getQuantityInGrams()));
+					so.setNamirnica(pozicijaNamirnice(m.getFood(), foods));
+					obrok.add(so);
+				}
+			}
+			StavkaObroka so = new StavkaObroka();
+			so.setKolicina("''");
+			so.setNamirnica(0);
+			obrok.add(so);
+			dnevniMeni.add(obrok);
+		}
+		model.addAttribute("dnevniMeni", dnevniMeni);
+
 		return "meal";
 	}
 
+	private long pozicijaNamirnice(Food food, List<Food> foods) {
+		int i = 1;
+		for (Food f : foods) {
+			if (food.getId() == f.getId()) {
+				break;
+			}
+			i++;
+		}
+		return i;
+	}
+
+	public class StavkaObroka {
+		private long namirnica;
+		private String kolicina;
+
+		public long getNamirnica() {
+			return namirnica;
+		}
+
+		public void setNamirnica(long namirnica) {
+			this.namirnica = namirnica;
+		}
+
+		public String getKolicina() {
+			return kolicina;
+		}
+
+		public void setKolicina(String kolicina) {
+			this.kolicina = kolicina;
+		}
+
+	}
 }
